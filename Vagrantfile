@@ -2,35 +2,52 @@
 # vim: set ft=ruby :
 
 MACHINES = {
-  :otuslinux => {
+	:otuslinux => {
         :box_name => "centos/7",
         :ip_addr => '192.168.11.101',
-	:disks => {
-		:sata1 => {
-			:dfile => './sata1.vdi',
-			:size => 250,
-			:port => 1
-		},
-		:sata2 => {
-                        :dfile => './sata2.vdi',
-                        :size => 250, # Megabytes
-			:port => 2
-		},
-                :sata3 => {
-                        :dfile => './sata3.vdi',
-                        :size => 250,
-                        :port => 3
-                },
-                :sata4 => {
-                        :dfile => './sata4.vdi',
-                        :size => 250, # Megabytes
-                        :port => 4
-                }
-
-	}
-
-		
-  },
+		:disks => {
+			:sata1 => {
+				:dfile => './sata1.vdi',
+				:size => 256,
+				:port => 1
+			},
+			:sata2 => {
+				:dfile => './sata2.vdi',
+				:size => 256, # Megabytes
+				:port => 2
+			},
+			:sata3 => {
+				:dfile => './sata3.vdi',
+				:size => 256,
+				:port => 3
+			},
+			:sata4 => {
+				:dfile => './sata4.vdi',
+				:size => 256, # Megabytes
+				:port => 4
+			},
+			:sata5 => {
+				:dfile => './sata5.vdi',
+				:size => 256, # Megabytes
+				:port => 5
+			},
+			:sata6 => {
+				:dfile => './sata6.vdi',
+				:size => 256, # Megabytes
+				:port => 6
+			},
+			:sata7 => {
+				:dfile => './sata7.vdi',
+				:size => 256, # Megabytes
+				:port => 7
+			},
+			:sata8 => {
+				:dfile => './sata8.vdi',
+				:size => 256, # Megabytes
+				:port => 8
+			}
+		}
+	},
 }
 
 Vagrant.configure("2") do |config|
@@ -66,7 +83,13 @@ Vagrant.configure("2") do |config|
  	  box.vm.provision "shell", inline: <<-SHELL
 	      mkdir -p ~root/.ssh
               cp ~vagrant/.ssh/auth* ~root/.ssh
-	      yum install -y mdadm smartmontools hdparm gdisk
+	      yum install -y mdadm smartmontools hdparm gdisk e2fsprogs
+			mdadm --create --verbose /dev/md0 -l 10 -n 8 /dev/sd{b,c,d,e,f,g,h,i}
+			mkdir /etc/mdadm
+			echo "DEVICE partitions" > /etc/mdadm/mdadm.conf
+			mdadm --detail --scan --verbose | awk '/ARRAY/ {print}' >> /etc/mdadm/mdadm.conf
+			parted -s /dev/md0 mklabel gpt
+			for i in $(seq 1 5); do parted /dev/md0 mkpart primary ext4 $((i*20-20))% $((i*20))%; sudo mkfs.ext4 /dev/md0p$i; mkdir -p /raid/part$i; mount /dev/md0p$i /raid/part$i; done
   	  SHELL
 
       end
